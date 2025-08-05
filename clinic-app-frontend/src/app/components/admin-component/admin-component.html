@@ -1,0 +1,117 @@
+<div class="admin-container">
+  <header class="admin-header">
+    <div class="header-content">
+      <h1>Admin Dashboard</h1>
+      <div class="header-actions">
+        <span class="welcome-text">Welcome, {{ authService.getCurrentUser()?.firstName }}</span>
+        <button class="logout-btn" (click)="logout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <div class="actions-bar">
+      <button class="add-user-btn" (click)="showAddUserForm()" *ngIf="!showAddForm">
+        <i class="fas fa-plus"></i> Add New User
+      </button>
+    </div>
+
+    <div class="alert alert-success" *ngIf="success">
+      {{ success }}
+    </div>
+
+    <div class="alert alert-error" *ngIf="error">
+      {{ error }}
+    </div>
+
+    <!-- Add/Edit User Form -->
+    <div class="user-form-container" *ngIf="showAddForm">
+      <div class="form-header">
+        <h3>{{ editingUser ? 'Edit User' : 'Add New User' }}</h3>
+        <button class="close-btn" (click)="cancelForm()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <form [formGroup]="userForm" (ngSubmit)="onSubmit()" class="user-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName">First Name</label>
+            <input type="text" id="firstName" formControlName="firstName" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="lastName">Last Name</label>
+            <input type="text" id="lastName" formControlName="lastName" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" formControlName="username" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" formControlName="email" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="password">{{ editingUser ? 'New Password (leave blank to keep current)' : 'Password' }}</label>
+            <input type="password" id="password" formControlName="password" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="role">Role</label>
+            <select id="role" formControlName="role" class="form-control">
+              <option [value]="userRoles.Doctor">Doctor</option>
+              <option [value]="userRoles.Receptionist">Receptionist</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="cancel-btn" (click)="cancelForm()">Cancel</button>
+          <button type="submit" class="submit-btn" [disabled]="userForm.invalid || loading">
+            <span *ngIf="loading" class="spinner"></span>
+            {{ loading ? 'Saving...' : (editingUser ? 'Update User' : 'Create User') }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Users List -->
+    <div class="users-list" *ngIf="!showAddForm">
+      <h3>Manage Users</h3>
+      <div class="users-grid">
+        <div class="user-card" *ngFor="let user of users">
+          <div class="user-info">
+            <div class="user-avatar">
+              <i class="fas" [class.fa-stethoscope]="user.role === userRoles.Doctor"
+                 [class.fa-desk]="user.role === userRoles.Receptionist"></i>
+            </div>
+            <div class="user-details">
+              <h4>{{ user.firstName }} {{ user.lastName }}</h4>
+              <p class="user-username">@{{ user.username }}</p>
+              <p class="user-email">{{ user.email }}</p>
+              <span class="user-role" [class.doctor]="user.role === userRoles.Doctor"
+                    [class.receptionist]="user.role === userRoles.Receptionist">
+                {{ getRoleText(user.role) }}
+              </span>
+            </div>
+          </div>
+          <div class="user-actions">
+            <button class="edit-btn" (click)="editUser(user)">
+              <i class="fas fa-edit"></i>Edit
+            </button>
+            <button class="delete-btn" (click)="deleteUser(user)">
+              <i class="fas fa-trash"></i>Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

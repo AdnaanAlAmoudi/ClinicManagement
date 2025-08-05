@@ -1,0 +1,258 @@
+<!-- components/doctor/doctor.component.html -->
+<div class="doctor-container">
+  <div class="header">
+    <h1>Patient Examination - Doctor Portal</h1>
+    <button class="btn btn-danger" (click)="logout()" [disabled]="loading()">
+      Logout
+    </button>
+  </div>
+
+  <!-- Loading Indicator -->
+  @if (loading()) {
+  <div class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Loading patients...</p>
+  </div>
+  }
+
+  <!-- Patient Selection View -->
+  @if (!selectedPatient() && !loading()) {
+  <div class="main-content">
+    <h2>Select Patient for Examination ({{ sortedPatients().length }} patients)</h2>
+    <div class="patients-grid">
+      @for (patient of sortedPatients(); track patient.id) {
+      <div class="patient-card"
+           (click)="selectPatient(patient)"
+           [class.examined]="patient.isExamined">
+        <div class="patient-header">
+          <h3>{{ patient.firstName }} {{ patient.lastName }}</h3>
+          <span class="age">Age: {{ calculateAge(patient.dateOfBirth) }}</span>
+        </div>
+        <div class="patient-info">
+          <p><strong>Sex:</strong> {{ patient.sex }}</p>
+          <p><strong>Appointment:</strong> {{ patient.appointmentTime | date:'short' }}</p>
+          <p><strong>Phone:</strong> {{ patient.phoneNumber || 'N/A' }}</p>
+          @if (patient.allergies) {
+          <p><strong>Allergies:</strong> {{ patient.allergies }}</p>
+          }
+        </div>
+        <div class="patient-status">
+          <span class="status" [class.examined]="patient.isExamined" [class.pending]="!patient.isExamined">
+            {{ patient.isExamined ? 'Examined' : 'Pending Examination' }}
+          </span>
+        </div>
+        @if (patient.isExamined) {
+        <div class="examination-info">
+          <small><strong>Doctor:</strong> {{ patient.doctorName }}</small><br>
+          <small><strong>Date:</strong> {{ patient.examinationDate | date:'short' }}</small>
+        </div>
+        }
+      </div>
+      }
+    </div>
+
+    @if (sortedPatients().length === 0) {
+    <div class="no-patients">
+      <p>No patients registered for examination.</p>
+    </div>
+    }
+  </div>
+  }
+
+  <!-- Examination Form -->
+  @if (selectedPatient()) {
+   
+    <div class="patient-summary">
+      <button class="btn btn-secondary back-btn" (click)="cancelExamination()">← Back to Patient List</button>
+      <div class="summary-content">
+        <h2>{{ currentPatientName }}</h2>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <label>Age:</label>
+            <span>{{ calculateAge(selectedPatient()!.dateOfBirth) }}</span>
+          </div>
+          <div class="summary-item">
+            <label>Sex:</label>
+            <span>{{ selectedPatient()!.sex }}</span>
+          </div>
+          <div class="summary-item">
+            <label>Weight:</label>
+            <span>{{ selectedPatient()!.weight ? selectedPatient()!.weight + ' kg' : 'N/A' }}</span>
+          </div>
+          <div class="summary-item">
+            <label>Height:</label>
+            <span>{{ selectedPatient()!.height ? selectedPatient()!.height + ' cm' : 'N/A' }}</span>
+          </div>
+          <div class="summary-item">
+            <label>Insurance:</label>
+            <span>{{ selectedPatient()!.insuranceName || 'N/A' }}</span>
+          </div>
+          <div class="summary-item">
+            <label>Phone:</label>
+            <span>{{ selectedPatient()!.phoneNumber || 'N/A' }}</span>
+          </div>
+        </div>
+        @if (selectedPatient()!.medicalHistory || selectedPatient()!.allergies) {
+        <div class="medical-info">
+          @if (selectedPatient()!.medicalHistory) {
+          <div>
+            <label>Medical History:</label>
+            <p>{{ selectedPatient()!.medicalHistory }}</p>
+          </div>
+          }
+          @if (selectedPatient()!.allergies) {
+          <div>
+            <label>Allergies:</label>
+            <p class="allergies">{{ selectedPatient()!.allergies }}</p>
+          </div>
+          }
+        </div>
+        }
+      </div>
+    </div>
+
+    <form [formGroup]="examinationForm" (ngSubmit)="onSubmitExamination()" class="examination-form">
+      <!-- Symptoms Section -->
+      <div class="form-section">
+        <h3>Symptoms Checklist</h3>
+        <div class="categories-container">
+          @for (category of symptomCategories() | keyvalue; track category.key) {
+          <div class="category">
+            <h4>{{ category.key }}</h4>
+            <div class="checkbox-grid">
+              @for (symptom of category.value; track symptom.id) {
+              <label class="checkbox-item">
+                <input type="checkbox"
+                       [checked]="isSymptomSelected(symptom.id)"
+                       (change)="onSymptomChange(symptom.id, $event)"
+                       [disabled]="submitting()">
+                <span>{{ symptom.name }}</span>
+              </label>
+              }
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+
+      <!-- Diagnoses Section -->
+      <div class="form-section">
+        <h3>Diagnosis Checklist</h3>
+        <div class="categories-container">
+          @for (category of diagnosisCategories() | keyvalue; track category.key) {
+          <div class="category">
+            <h4>{{ category.key }}</h4>
+            <div class="checkbox-grid">
+              @for (diagnosis of category.value; track diagnosis.id) {
+              <label class="checkbox-item">
+                <input type="checkbox"
+                       [checked]="isDiagnosisSelected(diagnosis.id)"
+                       (change)="onDiagnosisChange(diagnosis.id, $event)"
+                       [disabled]="submitting()">
+                <span>{{ diagnosis.name }} <small>({{ diagnosis.code }})</small></span>
+              </label>
+              }
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+
+      <!-- Doctor Information -->
+      <div class="form-section">
+        <h3>Doctor Information</h3>
+        <div class="form-group">
+          <label for="doctorName">Doctor Name *</label>
+          <input type="text"
+                 id="doctorName"
+                 formControlName="doctorName"
+                 class="form-control"
+                 required
+                 [disabled]="submitting()">
+          @if (examinationForm.get('doctorName')?.invalid && examinationForm.get('doctorName')?.touched) {
+          <div class="error">
+            Doctor name is required
+          </div>
+          }
+        </div>
+      </div>
+
+      <!-- Prescriptions -->
+      <div class="form-section">
+        <h3>Prescriptions</h3>
+        <div class="form-group">
+          <label for="prescriptions">Prescription Details</label>
+          <textarea id="prescriptions"
+                    formControlName="prescriptions"
+                    class="form-control prescription-textarea"
+                    rows="6"
+                    placeholder="Enter prescription details, dosages, and instructions..."
+                    [disabled]="submitting()"></textarea>
+        </div>
+      </div>
+
+      <!-- Doctor Notes -->
+      <div class="form-section">
+        <h3>Doctor Notes</h3>
+        <div class="form-group">
+          <label for="doctorNotes">Additional Notes</label>
+          <textarea id="doctorNotes"
+                    formControlName="doctorNotes"
+                    class="form-control"
+                    rows="4"
+                    placeholder="Enter any additional observations, recommendations, or follow-up instructions..."
+                    [disabled]="submitting()"></textarea>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="form-section summary-section">
+        <h3>Examination Summary</h3>
+        <div class="summary-lists">
+          @if (selectedSymptomNames().length > 0) {
+          <div class="summary-list">
+            <h4>Selected Symptoms:</h4>
+            <ul>
+              @for (symptom of selectedSymptomNames(); track symptom) {
+              <li>{{ symptom }}</li>
+              }
+            </ul>
+          </div>
+          }
+          @if (selectedDiagnosisNames().length > 0) {
+          <div class="summary-list">
+            <h4>Selected Diagnoses:</h4>
+            <ul>
+              @for (diagnosis of selectedDiagnosisNames(); track diagnosis) {
+              <li>{{ diagnosis }}</li>
+              }
+            </ul>
+          </div>
+          }
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        @if (submitting()) {
+        <div class="submitting-indicator">
+          <div class="loading-spinner small"></div>
+          <span>Saving examination...</span>
+        </div>
+        }
+        <button type="submit"
+                class="btn btn-primary"
+                [disabled]="!isFormValid || submitting()">
+          Save Examination
+        </button>
+        <button type="button"
+                class="btn btn-secondary"
+                (click)="cancelExamination()"
+                [disabled]="submitting()">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+  }
+</div>

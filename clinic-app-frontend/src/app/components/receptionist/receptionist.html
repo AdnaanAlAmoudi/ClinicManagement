@@ -1,0 +1,191 @@
+<!-- components/receptionist/receptionist.component.html -->
+<div class="header">
+  <h1>Patient Registration - Receptionist</h1>
+  <div class="header-actions">
+    <button class="btn btn-primary" (click)="toggleForm()" [disabled]="loading()">
+      {{ showForm() ? 'Cancel' : 'Register New Patient' }}
+    </button>
+    <button class="btn btn-danger" (click)="logout()" [disabled]="loading()">
+      Logout
+    </button>
+  </div>
+</div>
+
+
+<!-- Loading Indicator -->
+  @if (loading()) {
+<div class="loading-container">
+  <div class="loading-spinner"></div>
+  <p>Processing...</p>
+</div>
+  }
+
+<!-- Patient Registration Form -->
+  @if (showForm()) {
+<div class="form-container">
+  <h2>{{ currentFormTitle }}</h2>
+  <form [formGroup]="patientForm" (ngSubmit)="onSubmit()">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="firstName">First Name *</label>
+        <input type="text" id="firstName" formControlName="firstName" class="form-control" required>
+        @if (patientForm.get('firstName')?.invalid && patientForm.get('firstName')?.touched) {
+        <div class="error">
+          First name is required (max 100 characters)
+        </div>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="lastName">Last Name *</label>
+        <input type="text" id="lastName" formControlName="lastName" class="form-control" required>
+        @if (patientForm.get('lastName')?.invalid && patientForm.get('lastName')?.touched) {
+        <div class="error">
+          Last name is required (max 100 characters)
+        </div>
+        }
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="dateOfBirth">Date of Birth *</label>
+        <input type="date" id="dateOfBirth" formControlName="dateOfBirth" class="form-control" required>
+      </div>
+
+      <div class="form-group">
+        <label for="sex">Sex *</label>
+        <select id="sex" formControlName="sex" class="form-control" required>
+          <option value="">Select Sex</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="weight">Weight (kg)</label>
+        <input type="number" id="weight" formControlName="weight" class="form-control" step="0.1">
+      </div>
+
+      <div class="form-group">
+        <label for="height">Height (cm)</label>
+        <input type="number" id="height" formControlName="height" class="form-control" step="0.1">
+      </div>
+
+      <div class="form-group">
+        <label for="shoeSize">Shoe Size</label>
+        <input type="text" id="shoeSize" formControlName="shoeSize" class="form-control">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="appointmentTime">Appointment Time *</label>
+        <input type="datetime-local" id="appointmentTime" formControlName="appointmentTime" class="form-control" required>
+      </div>
+
+      <div class="form-group">
+        <label for="insuranceName">Insurance Name</label>
+        <input type="text" id="insuranceName" formControlName="insuranceName" class="form-control">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="phoneNumber">Phone Number</label>
+        <input type="tel" id="phoneNumber" formControlName="phoneNumber" class="form-control">
+      </div>
+
+      <div class="form-group">
+        <label for="emergencyContact">Emergency Contact</label>
+        <input type="text" id="emergencyContact" formControlName="emergencyContact" class="form-control">
+      </div>
+
+      <div class="form-group">
+        <label for="emergencyPhone">Emergency Phone</label>
+        <input type="tel" id="emergencyPhone" formControlName="emergencyPhone" class="form-control">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="address">Address</label>
+      <textarea id="address" formControlName="address" class="form-control" rows="2"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="medicalHistory">Medical History</label>
+      <textarea id="medicalHistory" formControlName="medicalHistory" class="form-control" rows="3"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="allergies">Allergies</label>
+      <textarea id="allergies" formControlName="allergies" class="form-control" rows="2"></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" [disabled]="isFormInvalid || loading()">
+        {{ currentSubmitText }}
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="resetForm()" [disabled]="loading()">
+        Cancel
+      </button>
+    </div>
+  </form>
+</div>
+  }
+
+<!-- Patients List -->
+<div class="patients-list">
+  <h2>Registered Patients ({{ sortedPatients().length }})</h2>
+  <div class="table-container">
+    <table class="patients-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Age</th>
+          <th>Sex</th>
+          <th>Appointment</th>
+          <th>Phone</th>
+          <th>Insurance</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (patient of sortedPatients(); track patient.id) {
+        <tr>
+          <td>{{ patient.firstName }} {{ patient.lastName }}</td>
+          <td>{{ calculateAge(patient.dateOfBirth) }}</td>
+          <td>{{ patient.sex }}</td>
+          <td>{{ patient.appointmentTime | date:'short' }}</td>
+          <td>{{ patient.phoneNumber || 'N/A' }}</td>
+          <td>{{ patient.insuranceName || 'N/A' }}</td>
+          <td>
+            <span class="status" [class.examined]="patient.isExamined" [class.pending]="!patient.isExamined">
+              {{ patient.isExamined ? 'Examined' : 'Pending' }}
+            </span>
+          </td>
+          <td class="actions">
+            <button class="btn btn-sm btn-edit" (click)="editPatient(patient)" [disabled]="loading()">
+              Edit
+            </button>
+            <button class="btn btn-sm btn-delete" (click)="deletePatient(patient.id!)" [disabled]="loading()">
+              Delete
+            </button>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+
+    @if (sortedPatients().length === 0 && !loading()) {
+    <div class="no-patients">
+      <p>No patients registered yet.</p>
+    </div>
+    }
+  </div>
+</div>
+

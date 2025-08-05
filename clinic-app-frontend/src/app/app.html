@@ -1,0 +1,30 @@
+<!-- app.component.html -->
+<div class="app-container">
+  <nav class="navbar">
+    <div class="nav-brand">
+      <h1>{{ title }}</h1>
+    </div>
+    <div class="nav-buttons">
+      <button class="nav-btn"
+              [class.active]="isReceptionistView"
+              (click)="switchToReceptionist()">
+        👥 Receptionist
+      </button>
+      <button class="nav-btn"
+              [class.active]="isDoctorView"
+              (click)="switchToDoctor()">
+        👩‍⚕️ Doctor
+      </button>
+    </div>
+  </nav>
+
+  <!--<main class="main-content">
+    @if (isReceptionistView) {
+    <app-receptionist />
+    } @else if (isDoctorView) {
+    <app-doctor />
+    }
+  </main>-->
+  <app-login />
+  <!--//<app-admin></app-admin>-->
+</div>
